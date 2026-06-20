@@ -2,7 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 
-export const CAT_TRANSLATOR_API_URL = 'http://localhost:8000/translate';
+import { environment } from '../environments/environment';
 
 export interface PredictionScore {
   label: string;
@@ -22,7 +22,7 @@ export interface CatTranslationResponse {
   providedIn: 'root',
 })
 export class CatTranslatorService {
-  private readonly apiUrl = CAT_TRANSLATOR_API_URL;
+  private readonly apiUrl = `${environment.apiBaseUrl}/translate`;
 
   constructor(private readonly http: HttpClient) {}
 
