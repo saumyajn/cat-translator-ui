@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+tensorflow
+tensorflow_hub
+librosa
+numpy
+python-multipart
+soundfile
+requests

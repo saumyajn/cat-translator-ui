@@ -1,0 +1,78 @@
+<main class="app-shell">
+  <section class="hero" aria-labelledby="page-title">
+    <p class="eyebrow">AI-powered cat intent classifier</p>
+    <h1 id="page-title">{{ title }}</h1>
+    <p class="hero-copy">
+      Record a short meow, chirp, or call. The app listens for three seconds and
+      predicts your cat's most likely intent.
+    </p>
+  </section>
+
+  <section class="translator-card" aria-label="Cat voice recorder">
+    <div class="status-row">
+      <span class="status-dot" [class.is-recording]="isRecording"></span>
+      <span>Status: {{ status }}</span>
+    </div>
+
+    <button
+      class="mic-button"
+      type="button"
+      [disabled]="!canRecord"
+      [class.is-recording]="isRecording"
+      (click)="recordCatSound()"
+      aria-label="Record cat sound for three seconds"
+    >
+      <span class="mic-icon" aria-hidden="true">
+        <span class="mic-head"></span>
+        <span class="mic-stem"></span>
+        <span class="mic-base"></span>
+      </span>
+    </button>
+
+    <p class="action-text">
+      @if (isRecording) {
+        Recording exactly 3 seconds...
+      } @else if (isLoading) {
+        Translating likely intent...
+      } @else {
+        Tap the microphone when your cat makes a sound.
+      }
+    </p>
+
+    @if (errorMessage) {
+      <div class="error-message" role="alert">
+        {{ errorMessage }}
+      </div>
+    }
+  </section>
+
+  @if (result) {
+    <section class="result-card" aria-label="Prediction result">
+      <p class="result-label">Likely Intent</p>
+      <div class="result-main">
+        <h2>{{ result.intent }}</h2>
+        <span>{{ confidencePercent }}%</span>
+      </div>
+
+      <div class="confidence-track" aria-hidden="true">
+        <div class="confidence-fill" [style.width.%]="confidencePercent"></div>
+      </div>
+
+      <p class="result-message">{{ result.message }}</p>
+
+      <div class="prediction-list" aria-label="All prediction scores">
+        @for (prediction of result.all_predictions; track prediction.label) {
+          <div class="prediction-row">
+            <span>{{ prediction.label }}</span>
+            <strong>{{ predictionPercent(prediction.confidence) }}%</strong>
+          </div>
+        }
+      </div>
+    </section>
+  }
+
+  <p class="disclaimer">
+    This predicts likely cat intent, not exact words. It is not a veterinary or
+    behavioral diagnosis.
+  </p>
+</main>

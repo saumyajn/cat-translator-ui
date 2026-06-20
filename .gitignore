@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.py[cod]
+venv/
+.env
+.env.*
+
+# FastAPI / ML generated files
+backend/venv/
+backend/__pycache__/
+backend/uploads/
+backend/temp/
+backend/tmp/
+
+# Large model/data files - do not push unless intentionally using Git LFS
+*.keras
+*.h5
+*.onnx
+*.tflite
+archive.zip
+dataset/
+data/
+manifest.csv
+
+# Node / Angular
+node_modules/
+dist/
+.angular/
+frontend/node_modules/
+frontend/dist/
+frontend/.angular/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
