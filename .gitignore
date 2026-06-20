@@ -24,7 +24,7 @@ backend/tmp/
 *.log
 
 # Large ML model artifacts
-*.keras
+# *.keras
 *.h5
 *.onnx
 *.tflite
