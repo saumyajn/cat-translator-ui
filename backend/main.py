@@ -8,7 +8,7 @@ from contextlib import asynccontextmanager
 import os
 from pathlib import Path
 
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import FastAPI, File, HTTPException, Response, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 
 from audio_utils import AudioDecoderUnavailableError, AudioProcessingError, load_audio_file
@@ -95,6 +95,12 @@ app.add_middleware(
 def health_check() -> dict[str, str]:
     """Return API health."""
     return {"status": "ok"}
+
+
+@app.head("/health")
+def health_head() -> Response:
+    """Return an empty 200 response for uptime checks."""
+    return Response(status_code=200)
 
 
 @app.post("/translate")
