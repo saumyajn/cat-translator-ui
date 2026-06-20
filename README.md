@@ -1,18 +1,17 @@
-﻿# Cat Translator AI
+# Cat Translator AI
 
-A cat voice to human intent translator AI project skeleton.
+Cat Translator AI is a small full-stack project that classifies short cat vocalizations into likely intent labels. It does not translate exact cat words. The app predicts broad sound-pattern intent such as `Food`, `Isolation`, or `Brushing`.
 
-This project is designed to classify short cat vocalizations into broad intent labels such as food request, isolation distress, greeting, play, or discomfort. It does **not** claim to translate exact cat words or sentences. The goal is practical intent classification from audio patterns using free and open-source tools.
+The project uses only free/open-source tooling:
 
-## Project Status
+- Training: Google Colab, TensorFlow, TensorFlow Hub YAMNet, librosa
+- Backend: FastAPI, TensorFlow, TensorFlow Hub, FFmpeg, librosa
+- Frontend: Angular standalone components, HttpClient, browser MediaRecorder API
 
-This repository currently contains a placeholder project skeleton only. The full model training pipeline, API inference code, and Angular UI behavior are intentionally not implemented yet.
-
-## Folder Structure
+## Repository Layout
 
 ```text
 cat-translator-ai/
-  README.md
   training/
     cat_training_colab.ipynb
     label_map.json
@@ -23,322 +22,135 @@ cat-translator-ai/
     audio_utils.py
     label_map.json
     requirements.txt
+    test_client.py
   frontend/
-    package.json
-    src/
-      app/
-        app.component.ts
-        app.component.html
-        app.component.css
-        cat-translator.service.ts
+    src/app/
 ```
 
-## What This App Should Do
+## Important Model Note
 
-The finished app will let a user record or upload a cat sound, send the audio to a FastAPI backend, and receive a predicted intent label with confidence scores.
-
-Example supported intent labels:
-
-- `food_request`: The cat may be asking for food or treats.
-- `isolation_distress`: The cat may be calling because it is separated, lonely, or seeking attention.
-- `happy_greeting`: The cat may be greeting or showing friendly engagement.
-- `play_request`: The cat may want play or stimulation.
-- `discomfort`: The cat may be stressed, uncomfortable, or in pain.
-- `unknown`: The audio does not confidently match a known class.
-
-These are behavioral intent categories, not exact translations.
-
-## Tech Stack
-
-All tools are free and open source.
-
-- Training: Google Colab
-- Audio loading and preprocessing: librosa
-- Embeddings: TensorFlow Hub YAMNet
-- Model training: TensorFlow / Keras
-- Backend API: FastAPI
-- Frontend: Angular
-- Recording: Browser MediaRecorder API
-- Browser audio decoding: FFmpeg
-- Data format: WAV audio files
-- Model artifact format: TensorFlow SavedModel or Keras `.keras` file
-
-## Full Workflow
-
-### 1. Collect Audio Data
-
-Create a dataset of short cat vocalization recordings. Each file should contain a single clear cat sound when possible.
-
-Recommended recording rules:
-
-- Use WAV files when available.
-- Keep recordings short, ideally 1 to 5 seconds.
-- Avoid background music, TV, human speech, and loud household noise.
-- Record multiple cats if possible to reduce overfitting to one animal.
-- Capture different rooms, microphones, and distances.
-- Do not include private conversations in training audio.
-
-A simple naming convention can encode labels:
+`cat_model.keras` is intentionally not committed. It is a generated training artifact and can be large. Generate it from `training/cat_training_colab.ipynb`, then place it locally at:
 
 ```text
-F_001.wav
-I_002.wav
-H_003.wav
-P_004.wav
-D_005.wav
-U_006.wav
+backend/cat_model.keras
 ```
 
-Suggested filename prefixes:
+The backend will not make predictions until that local model file exists.
 
-- `F`: food_request
-- `I`: isolation_distress
-- `H`: happy_greeting
-- `P`: play_request
-- `D`: discomfort
-- `U`: unknown
+## Backend Setup
 
-The same label mapping should be stored in both `training/label_map.json` and `backend/label_map.json`.
-
-### 2. Train in Google Colab
-
-The notebook at `training/cat_training_colab.ipynb` will eventually handle training.
-
-Planned training steps:
-
-1. Mount Google Drive or upload a zipped dataset.
-2. Install training dependencies from `requirements-training.txt`.
-3. Load `.wav` files using `librosa`.
-4. Resample each file to 16,000 Hz, which is required by YAMNet.
-5. Pad or trim audio clips to a consistent duration.
-6. Pass audio through TensorFlow Hub YAMNet to extract embeddings.
-7. Train a small classifier on top of the YAMNet embeddings.
-8. Evaluate the classifier with a train/validation/test split.
-9. Export the trained model artifact.
-10. Save the final label map used during training.
-
-YAMNet is useful here because it already understands many general audio features. Instead of training a large audio model from scratch, this project can train a smaller classifier using YAMNet embeddings.
-
-### 3. Export the Model
-
-The trained classifier should be exported from Colab into a backend-loadable format.
-
-Possible artifact layout:
-
-```text
-backend/models/cat_intent_classifier.keras
-backend/label_map.json
-```
-
-The backend should use the exact same label order as training. Changing label order after training will produce incorrect predictions.
-
-### 4. Run the FastAPI Backend
-
-The backend exposes:
-
-```text
-POST /translate
-```
-
-Expected behavior:
-
-1. Receive an audio file from the frontend.
-2. Validate file type and size.
-3. Convert browser audio such as WebM/Opus to mono 16 kHz WAV with FFmpeg.
-4. Load the converted WAV with `librosa`.
-5. Pad or trim to the expected duration.
-6. Extract YAMNet embeddings.
-7. Run the trained classifier.
-8. Return the predicted intent and confidence scores.
-
-Example future response:
-
-```json
-{
-  "predicted_label": "food_request",
-  "confidence": 0.82,
-  "scores": {
-    "food_request": 0.82,
-    "isolation_distress": 0.08,
-    "happy_greeting": 0.04,
-    "play_request": 0.03,
-    "discomfort": 0.02,
-    "unknown": 0.01
-  },
-  "disclaimer": "This is an intent classification, not an exact translation."
-}
-```
-
-### 5. Build the Angular Frontend
-
-The Angular app will eventually provide:
-
-- A record button using the browser MediaRecorder API.
-- A stop button to finish recording.
-- A playback preview of the captured audio.
-- A submit button to send the audio to FastAPI.
-- A result area showing the predicted intent and confidence.
-- A visible disclaimer that predictions are approximate intent classifications.
-
-The frontend should not claim that the model can translate exact cat words. It should use careful wording such as:
-
-- "Likely intent"
-- "Possible meaning"
-- "Confidence"
-- "This is not a medical or behavioral diagnosis"
-
-## Development Setup
-
-### Training Environment
-
-Use Google Colab for model training.
-
-Install dependencies in Colab:
-
-```bash
-pip install -r training/requirements-training.txt
-```
-
-### Backend Environment
-
-The backend uses FFmpeg to decode browser-recorded audio such as WebM/Opus from
-the MediaRecorder API. FFmpeg must be installed and available on your PATH before
-running the backend.
+The backend decodes browser-recorded audio with FFmpeg. MediaRecorder often sends WebM/Opus, so FFmpeg converts uploads to mono 16 kHz WAV before librosa loads them.
 
 Install FFmpeg:
 
-Windows with winget:
-
 ```bash
+# Windows
 winget install Gyan.FFmpeg
-```
 
-Windows with Chocolatey:
-
-```bash
-choco install ffmpeg
-```
-
-macOS with Homebrew:
-
-```bash
+# macOS
 brew install ffmpeg
-```
 
-Linux with apt:
-
-```bash
+# Ubuntu/Debian
 sudo apt update
 sudo apt install ffmpeg
 ```
 
-Verify installation:
+Verify FFmpeg:
 
 ```bash
 ffmpeg -version
 ```
 
-From the `backend` folder:
+Create and activate a Python environment from `backend/`:
 
 ```bash
-python -m venv .venv
-.venv\Scripts\activate
+cd backend
+python -m venv venv
+venv\Scripts\activate
 pip install -r requirements.txt
+```
+
+Run the API:
+
+```bash
 uvicorn main:app --reload
 ```
 
-The backend will typically run at:
+Health check:
 
 ```text
-http://127.0.0.1:8000
+GET http://localhost:8000/health
 ```
 
-### Frontend Environment
+Prediction endpoint:
 
-From the `frontend` folder:
+```text
+POST http://localhost:8000/translate
+multipart/form-data field: file
+```
+
+You can test with:
+
+```bash
+python test_client.py sample.wav
+```
+
+## Frontend Setup
+
+From `frontend/`:
 
 ```bash
 npm install
 npm start
 ```
 
-The frontend will typically run at:
+Open:
 
 ```text
 http://localhost:4200
 ```
 
-## API Design
+The Angular app asks for microphone permission, records exactly 3 seconds, sends `cat-recording.webm` to the backend, and displays the predicted intent, confidence, and message.
 
-Prediction endpoint:
+## Training Notebook Workflow
 
-```text
-POST /translate
-Content-Type: multipart/form-data
-Field: file
-```
+Use Google Colab for training:
 
-The frontend records with the browser MediaRecorder API, which commonly creates
-`webm` audio. The backend saves the upload to a temporary file, converts it with
-FFmpeg, and then loads the converted WAV with `librosa`:
+1. Open `training/cat_training_colab.ipynb` in Colab.
+2. Upload or mount `archive.zip`.
+3. The notebook unzips the dataset and parses Kaggle-style filenames.
+4. It builds `manifest.csv` with label, cat ID, breed, sex, owner, session, sample rate, and duration metadata.
+5. It splits train/validation/test by `cat_id` to reduce leakage.
+6. It loads audio with `librosa`, resamples to 16 kHz, and creates 3-second windows.
+7. It extracts YAMNet embeddings with TensorFlow Hub.
+8. It trains a small Keras classifier on top of those embeddings.
+9. It reports accuracy, confusion matrix, classification report, and dataset balance.
+10. It saves `cat_model.keras`, a timestamped model copy, `label_map.json`, `manifest.csv`, and the training history plot.
+
+Copy the generated `cat_model.keras` and `label_map.json` into `backend/` for local inference. Do not commit `cat_model.keras`, datasets, manifests, or training zips.
+
+## Safety Before First Push
+
+The root `.gitignore` excludes:
+
+- Python virtual environments
+- `node_modules`
+- Angular build output
+- `.env` files
+- `archive.zip`
+- dataset folders
+- generated manifests
+- large model files such as `.keras`, `.h5`, `.onnx`, and `.tflite`
+
+Before pushing, check:
 
 ```bash
-ffmpeg -y -i input.webm -ac 1 -ar 16000 output.wav
+git status --short
+git check-ignore -v backend/cat_model.keras backend/manifest.csv backend/venv frontend/node_modules
 ```
 
-Response shape:
+If any dataset, virtual environment, `node_modules`, secret, or model artifact appears as staged/tracked, remove it from Git before pushing.
 
-```json
-{
-  "intent": "Food",
-  "confidence": 0.87,
-  "all_predictions": [
-    { "label": "Food", "confidence": 0.87 },
-    { "label": "Isolation", "confidence": 0.08 },
-    { "label": "Brushing", "confidence": 0.05 }
-  ],
-  "message": "Your cat is probably asking for food.",
-  "disclaimer": "This predicts likely intent only; it is not a literal cat-language translation."
-}
-```
+## Limitations
 
-## Model Limitations
-
-This project should be honest about what it can and cannot do.
-
-Limitations:
-
-- Cat vocalization meaning depends heavily on context.
-- The same sound can mean different things depending on posture, environment, history, and body language.
-- A model trained on one cat may not generalize well to another cat.
-- Background noise can strongly affect predictions.
-- The app should not be used as a veterinary diagnostic tool.
-- Signs of pain, distress, breathing trouble, or sudden behavior changes should be handled by a veterinarian.
-
-## Privacy Notes
-
-Audio can accidentally capture people, addresses, conversations, or other private information.
-
-Recommended privacy approach:
-
-- Keep raw training data local or in the user's private Google Drive.
-- Do not upload user recordings to third-party services except the user's own training environment.
-- Make the backend process audio locally during development.
-- Delete temporary uploaded files after inference.
-
-## Next Implementation Steps
-
-1. Fill in the Colab notebook with dataset loading and YAMNet embedding extraction.
-2. Train a baseline classifier on top of embeddings.
-3. Export a model artifact and label map.
-4. Implement backend audio preprocessing in `backend/audio_utils.py`.
-5. Implement backend model loading in `backend/model_loader.py`.
-6. Implement the FastAPI `/predict` route in `backend/main.py`.
-7. Implement MediaRecorder recording in the Angular component.
-8. Implement the Angular service call to the backend.
-9. Add validation, confidence thresholds, and friendly unknown-state handling.
-10. Test with real cat recordings and refine labels.
-
-## License
-
-Placeholder: choose an open-source license before publishing.
+This is an intent classifier, not a literal cat-language translator. Predictions depend heavily on dataset quality, label quality, number of samples, recording conditions, and whether the model has seen similar cats and sounds during training. It is not a veterinary or behavioral diagnosis tool.

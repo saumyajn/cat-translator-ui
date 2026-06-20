@@ -1,37 +1,71 @@
-# Python
+# Python caches and virtual environments
 __pycache__/
 *.py[cod]
+*$py.class
+.python-version
+.venv/
 venv/
+env/
+ENV/
+backend/.venv/
+backend/venv/
+backend/env/
+
+# Environment and local secrets
 .env
 .env.*
+*.env
 
-# FastAPI / ML generated files
-backend/venv/
+# Backend runtime/temp files
 backend/__pycache__/
 backend/uploads/
 backend/temp/
 backend/tmp/
+*.log
 
-# Large model/data files - do not push unless intentionally using Git LFS
+# Large ML model artifacts
 *.keras
 *.h5
 *.onnx
 *.tflite
+*.pb
+saved_model/
+
+# Datasets and generated data
 archive.zip
 dataset/
+datasets/
 data/
+CatAudio/
+training/dataset/
+training/datasets/
+training/data/
+backend/manifest.csv
 manifest.csv
+*.csv
+!training/label_map.json
+!backend/label_map.json
 
-# Node / Angular
+# Node / Angular dependencies and builds
 node_modules/
-dist/
-.angular/
 frontend/node_modules/
+dist/
+build/
 frontend/dist/
+frontend/build/
 frontend/.angular/
+.angular/
+
+# Test/cache output
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage/
+htmlcov/
 
 # OS / editor
 .DS_Store
 Thumbs.db
 .vscode/
-.idea/frontend-old/
+.idea/
