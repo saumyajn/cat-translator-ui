@@ -34,4 +34,4 @@ frontend/.angular/
 .DS_Store
 Thumbs.db
 .vscode/
-.idea/
+.idea/frontend-old/

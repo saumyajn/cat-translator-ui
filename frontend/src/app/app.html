@@ -1,0 +1,90 @@
+<main class="page-shell">
+  <section class="hero" aria-labelledby="page-title">
+    <p class="eyebrow">Sound pattern intent classifier</p>
+    <h1 id="page-title">Cat Voice Translator</h1>
+    <p class="hero-copy">
+      Tap record when your cat vocalizes. The app listens for three seconds,
+      then predicts the most likely intent from the sound pattern.
+    </p>
+  </section>
+
+  <section class="translator-panel" aria-label="Cat voice recording controls">
+    <div class="status-pill" [class.recording]="isRecording" [class.loading]="isLoading">
+      <span class="status-light"></span>
+      <span>{{ status }}</span>
+    </div>
+
+    <button
+      class="record-button"
+      type="button"
+      [disabled]="!canRecord"
+      [class.recording]="isRecording"
+      (click)="startRecording()"
+      aria-label="Record cat sound for three seconds"
+    >
+      <span class="record-label">Record</span>
+    </button>
+
+    <p class="helper-text">
+      @if (isRecording) {
+        Listening for exactly 3 seconds...
+      } @else if (isLoading) {
+        Sending audio to the intent model...
+      } @else {
+        Ready when your cat is.
+      }
+    </p>
+
+    @if (errorMessage) {
+      <div class="error-box" role="alert">
+        {{ errorMessage }}
+      </div>
+    }
+  </section>
+
+  @if (result) {
+    <section
+      class="result-card"
+      [class.uncertain]="resultState === 'uncertain'"
+      [class.unknown]="resultState === 'unknown'"
+      aria-label="Prediction result"
+    >
+      <p class="result-kicker">{{ resultKicker }}</p>
+      <div class="result-heading">
+        <h2>{{ displayedIntent }}</h2>
+        <strong>{{ confidencePercent }}%</strong>
+      </div>
+
+      @if (result.intent === 'Uncertain') {
+        <p class="state-note">
+          Top guess: {{ result.top_guess }}. The confidence is below the normal
+          prediction threshold.
+        </p>
+      } @else if (result.intent === 'Unknown') {
+        <p class="state-note">
+          The best guess was {{ result.top_guess }}, but confidence was too low
+          to show it as a likely intent.
+        </p>
+      }
+
+      <div class="confidence-bar" aria-hidden="true">
+        <span [style.width.%]="confidencePercent"></span>
+      </div>
+
+      <p class="message">{{ result.message }}</p>
+
+      <div class="score-list" aria-label="All prediction scores">
+        @for (prediction of result.all_predictions; track prediction.label) {
+          <div class="score-row">
+            <span>{{ prediction.label }}</span>
+            <strong>{{ predictionPercent(prediction.confidence) }}%</strong>
+          </div>
+        }
+      </div>
+    </section>
+  }
+
+  <p class="disclaimer">
+    This predicts likely cat intent from sound patterns. It does not translate exact words.
+  </p>
+</main>
