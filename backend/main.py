@@ -5,6 +5,7 @@ from __future__ import annotations
 import shutil
 import tempfile
 from contextlib import asynccontextmanager
+import os
 from pathlib import Path
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
@@ -24,6 +25,20 @@ INTENT_MESSAGES = {
     "Isolation": "Your cat may be seeking attention or reacting to being alone.",
     "Brushing": "Your cat may be expressing happy contact or brushing-related comfort.",
 }
+
+
+def cors_origins() -> list[str]:
+    """Return allowed CORS origins for local dev and deployed frontend."""
+    origins = [
+        "http://localhost:4200",
+        "http://127.0.0.1:4200",
+    ]
+    frontend_origin = os.getenv("FRONTEND_ORIGIN", "").strip()
+
+    if frontend_origin and frontend_origin not in origins:
+        origins.append(frontend_origin)
+
+    return origins
 
 
 def prediction_message(intent: str, top_guess: str) -> str:
@@ -69,12 +84,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:4200",
-        "http://127.0.0.1:4200",
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-    ],
+    allow_origins=cors_origins(),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
