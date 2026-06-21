@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import shutil
 import subprocess
 import tempfile
 from pathlib import Path
@@ -39,18 +38,21 @@ def convert_to_wav(
     input_path: str | Path,
     sample_rate: int = 16_000,
 ) -> Path:
-    """Convert uploaded browser audio to mono WAV with ffmpeg."""
-    ffmpeg_path = shutil.which("ffmpeg")
-
-    if ffmpeg_path is None:
+    """Convert any uploaded audio to mono 16 kHz WAV with imageio-ffmpeg."""
+    try:
+        import imageio_ffmpeg
+    except ImportError as exc:
         raise AudioDecoderUnavailableError(
-            "FFmpeg is not installed or is not available on PATH. Install FFmpeg "
-            "and restart the backend so browser-recorded audio can be decoded."
-        )
+            "imageio-ffmpeg is not installed. Run pip install -r requirements.txt "
+            "and restart the backend."
+        ) from exc
+
+    ffmpeg_path = imageio_ffmpeg.get_ffmpeg_exe()
 
     output_file = tempfile.NamedTemporaryFile(delete=False, suffix=".wav")
     output_path = Path(output_file.name)
     output_file.close()
+    print(f"Temporary converted wav path: {output_path}")
 
     command = [
         ffmpeg_path,
@@ -80,7 +82,8 @@ def convert_to_wav(
     if result.returncode != 0:
         output_path.unlink(missing_ok=True)
         error_text = (result.stderr or result.stdout or "").strip()
-        detail = error_text.splitlines()[-1] if error_text else "unknown ffmpeg error"
+        detail_lines = error_text.splitlines()
+        detail = "\n".join(detail_lines[-5:]) if detail_lines else "unknown ffmpeg error"
         raise AudioProcessingError(
             f"Could not decode the uploaded audio file with FFmpeg: {detail}"
         )
@@ -100,6 +103,7 @@ def load_audio_file(
     try:
         wav_path = convert_to_wav(path, sample_rate=sample_rate)
         audio, _ = librosa.load(wav_path, sr=sample_rate, mono=True)
+        print(f"Decoded audio shape before pad/trim: {audio.shape}")
     except Exception as exc:
         if isinstance(exc, (AudioProcessingError, AudioDecoderUnavailableError)):
             raise
@@ -117,4 +121,6 @@ def load_audio_file(
     if not np.all(np.isfinite(audio)):
         raise AudioProcessingError("The uploaded audio contains invalid numeric values.")
 
-    return pad_or_trim(audio, target_samples)
+    processed_audio = pad_or_trim(audio, target_samples)
+    print(f"Audio array shape after pad/trim: {processed_audio.shape}")
+    return processed_audio

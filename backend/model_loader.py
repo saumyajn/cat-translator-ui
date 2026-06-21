@@ -64,8 +64,10 @@ def _waveform_to_mean_embedding(bundle: ModelBundle, waveform: np.ndarray) -> np
 def predict_intent(bundle: ModelBundle, waveform: np.ndarray) -> dict:
     """Predict likely cat intent from a preprocessed waveform."""
     embedding = _waveform_to_mean_embedding(bundle, waveform)
+    model_input = np.expand_dims(embedding, axis=0)
+    print(f"Model input shape before prediction: {model_input.shape}")
     probabilities = bundle.classifier.predict(
-        np.expand_dims(embedding, axis=0),
+        model_input,
         verbose=0,
     )[0]
 

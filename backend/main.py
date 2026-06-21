@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import shutil
 import tempfile
+import traceback
 from contextlib import asynccontextmanager
 import os
 from pathlib import Path
@@ -11,14 +12,23 @@ from pathlib import Path
 from fastapi import FastAPI, File, HTTPException, Response, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 
-from audio_utils import AudioDecoderUnavailableError, AudioProcessingError, load_audio_file
+from audio_utils import load_audio_file
 from model_loader import ModelBundle, load_model_and_labels, predict_intent
 
 
 BASE_DIR = Path(__file__).resolve().parent
 MODEL_PATH = BASE_DIR / "cat_model.keras"
 LABEL_MAP_PATH = BASE_DIR / "label_map.json"
-SUPPORTED_EXTENSIONS = {".wav", ".mp3", ".m4a", ".ogg", ".flac", ".webm"}
+SUPPORTED_EXTENSIONS = {".wav", ".mp3", ".m4a", ".mp4", ".ogg", ".flac", ".webm"}
+SUPPORTED_CONTENT_TYPES = {
+    "audio/webm",
+    "audio/ogg",
+    "audio/wav",
+    "audio/wave",
+    "audio/x-wav",
+    "audio/mpeg",
+    "audio/mp4",
+}
 
 INTENT_MESSAGES = {
     "Food": "Your cat is probably asking for food.",
@@ -106,31 +116,39 @@ def health_head() -> Response:
 @app.post("/translate")
 async def translate_cat_audio(file: UploadFile = File(...)) -> dict:
     """Predict likely cat intent from an uploaded audio file."""
-    if not file.filename:
-        raise HTTPException(status_code=400, detail="No audio file was uploaded.")
-
-    suffix = Path(file.filename).suffix.lower()
-    if suffix not in SUPPORTED_EXTENSIONS:
-        raise HTTPException(
-            status_code=400,
-            detail=(
-                "Unsupported audio file type. Please upload a WAV or another common "
-                "browser audio format."
-            ),
-        )
-
-    model_bundle: ModelBundle | None = getattr(app.state, "model_bundle", None)
-    if model_bundle is None:
-        raise HTTPException(status_code=503, detail="Model is not loaded yet.")
-
     temp_path: Path | None = None
 
     try:
+        print(f"Uploaded filename: {file.filename}")
+        print(f"Uploaded content_type: {file.content_type}")
+
+        if not file.filename:
+            raise ValueError("No audio file was uploaded.")
+
+        suffix = Path(file.filename).suffix.lower()
+        content_type = (file.content_type or "").split(";")[0].strip().lower()
+        has_supported_extension = suffix in SUPPORTED_EXTENSIONS
+        has_supported_content_type = content_type in SUPPORTED_CONTENT_TYPES
+
+        if not has_supported_extension and not has_supported_content_type:
+            raise ValueError(
+                "Unsupported audio file type. Supported browser audio types are "
+                "audio/webm, audio/ogg, audio/wav, audio/mpeg, and audio/mp4."
+            )
+
+        model_bundle: ModelBundle | None = getattr(app.state, "model_bundle", None)
+        if model_bundle is None:
+            raise RuntimeError("Model is not loaded yet.")
+
         with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as temp_file:
             temp_path = Path(temp_file.name)
             shutil.copyfileobj(file.file, temp_file)
 
+        print(f"Temporary input file path: {temp_path}")
+
         waveform = load_audio_file(temp_path, sample_rate=16_000, duration_seconds=3.0)
+        print(f"Audio array shape: {waveform.shape}")
+
         prediction = predict_intent(model_bundle, waveform)
 
         return {
@@ -141,17 +159,9 @@ async def translate_cat_audio(file: UploadFile = File(...)) -> dict:
             "message": prediction_message(prediction["intent"], prediction["top_guess"]),
             "disclaimer": "This predicts likely intent only; it is not a literal cat-language translation.",
         }
-    except AudioDecoderUnavailableError as exc:
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
-    except AudioProcessingError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
-    except HTTPException:
-        raise
     except Exception as exc:
-        raise HTTPException(
-            status_code=500,
-            detail="Prediction failed. Please try again with a clear short cat audio clip.",
-        ) from exc
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
     finally:
         await file.close()
         if temp_path and temp_path.exists():

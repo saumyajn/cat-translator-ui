@@ -175,8 +175,10 @@ export class App implements OnDestroy {
           this.result = response;
         },
         error: (error) => {
+          console.error('Cat translator backend error:', error);
           this.errorMessage =
             error?.error?.detail ||
+            error?.message ||
             'Could not predict this recording. Try again with a clear cat sound.';
         },
       });
